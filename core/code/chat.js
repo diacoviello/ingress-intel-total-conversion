@@ -812,7 +812,7 @@ window.chat.postMsg = function() {
     return alert("Jarvis: A strange game. The only winning move is not to play. How about a nice game of chess?\n(You can't chat to the 'alerts' channel!)");
 
   // unknown tab, ignore
-  if (c != 'all' && c != 'faction')
+  if (c !== 'all' && c !== 'faction')
     return;
 
   var msg = $.trim($('#chatinput input').val());
