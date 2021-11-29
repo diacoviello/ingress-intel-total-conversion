@@ -85,10 +85,7 @@ document.body.innerHTML = ''
   + '    </div>'
   + '    <div id="portaldetails"></div>'
   + '    <input id="redeem" placeholder="Redeem code…" type="text"/>'
-  + '    <div id="toolbox">'
-  + '      <a onmouseover="setPermaLink(this)" onclick="setPermaLink(this);return androidPermalink()" title="URL link to this map view">Permalink</a>'
-  + '      <a onclick="window.aboutIITC()" style="cursor: help">About IITC</a>'
-  + '    </div>'
+  + '    <div id="toolbox"></div>'
   + '  </div>'
   + '</div>'
   + '<div id="updatestatus"><div id="innerstatus"></div></div>'
@@ -194,6 +191,3 @@ var ulog = (function (module) {
 }({})).exports;
 
 '@bundle_code@';
-
-  // fixed Addons
-  RegionScoreboard.setup();
