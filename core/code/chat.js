@@ -590,7 +590,9 @@ window.chat.request = function() {
 // loads more if not.
 window.chat.needMoreMessages = function() {
   var activeTab = chat.getActive();
-  if(activeTab === 'debug') return;
+  if(activeTab !== 'all' && activeTab !== 'faction' && activeTab !== 'alerts') {
+    return;
+  }
 
   var activeChat = $('#chat > :visible');
   if(activeChat.length === 0) return;
@@ -812,8 +814,9 @@ window.chat.postMsg = function() {
     return alert("Jarvis: A strange game. The only winning move is not to play. How about a nice game of chess?\n(You can't chat to the 'alerts' channel!)");
 
   // unknown tab, ignore
-  if (c !== 'all' && c !== 'faction')
+  if (c !== 'all' && c !== 'faction') {
     return;
+  }
 
   var msg = $.trim($('#chatinput input').val());
   if(!msg || msg === '') return;

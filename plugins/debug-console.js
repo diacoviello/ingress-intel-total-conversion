@@ -164,8 +164,10 @@ function setup() {
   overwriteNative();
 
   // emulate old API
+  window.debug = function () {};
   window.debug.renderDetails = debugTab.renderDetails;
   window.debug.printStackTrace = debugTab.printStackTrace;
+  window.debug.console = function () {};
   window.debug.console.show = debugTab.console.show;
   window.debug.console.renderLine = function (text, errorType) {
     return debugTab.console.renderLine(errorType, [text]);
