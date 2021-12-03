@@ -72,7 +72,7 @@ public class IITC_WebView extends WebView {
             mJsInterface = new IITC_JSInterface(mIitc);
         }
 
-        addJavascriptInterface(mJsInterface, "android");
+        addJavascriptInterface(mJsInterface, "app");
         mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(mIitc);
 
         // Hack to work Google login page in old browser
