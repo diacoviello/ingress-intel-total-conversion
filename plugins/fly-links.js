@@ -356,7 +356,7 @@ window.plugin.flyLinks.setup = function() {
     window.plugin.drawTools.filterEvents.on('changed', window.plugin.flyLinks.updateLayer);
   }
 
-  window.addLayerGroup('Fly links', window.plugin.flyLinks.linksLayerGroup, false);
-  window.addLayerGroup('Fly fields', window.plugin.flyLinks.fieldsLayerGroup, false);
+  window.layerChooser.addOverlay(window.plugin.flyLinks.linksLayerGroup, 'Fly links', {default: false});
+  window.layerChooser.addOverlay(window.plugin.flyLinks.fieldsLayerGroup, 'Fly fields', {default: false});
 }
 var setup = window.plugin.flyLinks.setup;
