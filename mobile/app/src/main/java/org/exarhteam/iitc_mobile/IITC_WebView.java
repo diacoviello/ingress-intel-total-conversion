@@ -40,25 +40,25 @@ public class IITC_WebView extends WebView {
     private int mFullscreenStatus = 0;
     private Runnable mNavHider;
     private boolean mDisableJs = false;
-    private final String mDesktopUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:17.0)" +
-            " Gecko/20130810 Firefox/17.0 Iceweasel/17.0.8";
-    private String mMobileUserAgent;
-            
+    private int defaultZoom;
+
 
     // init web view
     private void iitc_init(final Context c) {
         if (isInEditMode()) return;
         mIitc = (IITC_Mobile) c;
+        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(mIitc);
+
+
         mSettings = getSettings();
+        defaultZoom = mSettings.getTextZoom();
         mSettings.setJavaScriptEnabled(true);
         mSettings.setDomStorageEnabled(true);
         mSettings.setAllowFileAccess(true);
         mSettings.setGeolocationEnabled(true);
-        mSettings.setAppCacheEnabled(true);
-        mSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        mSettings.setAppCachePath(getContext().getCacheDir().getAbsolutePath());
-        mSettings.setDatabasePath(getContext().getApplicationInfo().dataDir + "/databases/");
-        mSettings.setTextZoom(100); // otherwise zoom may vary depending on system font settings
+
+        setSupportPopup(true);
+        setWebViewZoom(Integer.parseInt(mSharedPrefs.getString("pref_webview_zoom", "-1")));
 
         // enable mixed content (http on https...needed for some map tiles) mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -74,17 +74,6 @@ public class IITC_WebView extends WebView {
         }
 
         addJavascriptInterface(mJsInterface, "app");
-        mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(mIitc);
-
-        // https://developer.chrome.com/multidevice/user-agent#webview_user_agent
-        final String original_ua = mSettings.getUserAgentString();
-        if (original_ua.contains("; wv")) {
-            // remove ";wv " marker as Google blocks WebViews from using OAuth
-            mMobileUserAgent = original_ua.replace("; wv", "");
-        } else { // KitKat and older
-            mMobileUserAgent = original_ua.replaceFirst("Version\\/\\d\\.\\d+ ", "");
-        }
-        setUserAgent();
 
         mNavHider = new Runnable() {
             @Override
@@ -145,6 +134,9 @@ public class IITC_WebView extends WebView {
 
             // disable splash screen if a http error code is responded
             new CheckHttpResponse(mIitc).execute(url);
+
+            // Set User Agent with respect to given URL (Google/Facebook or fake user agent)
+            mIitcWebViewClient.setUserAgentForUrl(this, url);
             Log.d("loading url: " + url);
             super.loadUrl(url);
         }
@@ -284,10 +276,15 @@ public class IITC_WebView extends WebView {
         mDisableJs = val;
     }
 
-    public void setUserAgent() {
-        final String ua = mSharedPrefs.getBoolean("pref_fake_user_agent", false) ?
-                mDesktopUserAgent : mMobileUserAgent;
-        Log.d("setting user agent to: " + ua);
-        mSettings.setUserAgentString(ua);
+    public void setSupportPopup(final boolean val) {
+        mSettings.setSupportMultipleWindows(val);
+    }
+
+    public void setWebViewZoom(int zoom) {
+        if (zoom != -1) {
+            mSettings.setTextZoom(zoom);
+        } else {
+            mSettings.setTextZoom(defaultZoom);
+        }
     }
 }

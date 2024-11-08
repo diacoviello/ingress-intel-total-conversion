@@ -1,6 +1,11 @@
-/* global log -- eslint */
-function setupCRS () {
+/* global IITC, L, log -- eslint */
 
+/**
+ * @file This file provides functions for working with maps.
+ * @module map
+ */
+
+function setupCRS() {
   // use the earth radius value from s2 geometry library
   // https://github.com/google/s2-geometry-library-java/blob/c28f287b996c0cedc5516a0426fbd49f6c9611ec/src/com/google/common/geometry/S2LatLng.java#L31
   var EARTH_RADIUS_METERS = 6367000.0;
@@ -20,7 +25,7 @@ function setupCRS () {
     bounds: (function () {
       var d = EARTH_RADIUS_METERS * Math.PI;
       return L.bounds([-d, -d], [d, d]);
-    })()
+    })(),
   });
 
   L.CRS.S2 = L.extend({}, L.CRS.Earth, {
@@ -29,22 +34,35 @@ function setupCRS () {
     transformation: (function () {
       var scale = 0.5 / (Math.PI * SphericalMercator.S2.R);
       return L.transformation(scale, 0.5, -scale, 0.5);
-    }())
+    })(),
   });
 }
 
-function normLL (lat, lng, zoom) {
+/**
+ * Normalizes latitude, longitude, and zoom values. Ensures that the values are valid numbers, providing
+ * defaults if necessary.
+ *
+ * @function normLL
+ * @param {number|string} lat - Latitude value or string that can be converted to a number.
+ * @param {number|string} lng - Longitude value or string that can be converted to a number.
+ * @param {number|string} zoom - Zoom level value or string that can be converted to a number.
+ * @returns {Object} An object containing normalized center (latitude and longitude) and zoom level.
+ */
+function normLL(lat, lng, zoom) {
   return {
-    center: [
-      parseFloat(lat) || 0,
-      parseFloat(lng) || 0
-    ],
-    zoom: parseInt(zoom) || window.DEFAULT_ZOOM
+    center: [parseFloat(lat) || 0, parseFloat(lng) || 0],
+    zoom: parseInt(zoom) || window.DEFAULT_ZOOM,
   };
 }
 
-// retrieves the last shown position from URL or from a cookie
-function getPosition () {
+/**
+ * Retrieves the last known map position from the URL parameters or cookies.
+ * Prioritizes URL parameters over cookies. Extracts and normalizes the latitude, longitude, and zoom level.
+ *
+ * @function getPosition
+ * @returns {Object} An object containing the map's position and zoom level, or undefined if not found.
+ */
+function getPosition() {
   var url = window.getURLParam;
 
   var zoom = url('z');
@@ -52,7 +70,7 @@ function getPosition () {
   var lngE6 = url('lngE6');
   if (latE6 && lngE6) {
     log.log('mappos: reading email URL params');
-    return normLL(parseInt(latE6)/1E6, parseInt(lngE6)/1E6, zoom);
+    return normLL(parseInt(latE6) / 1e6, parseInt(lngE6) / 1e6, zoom);
   }
 
   var ll = url('ll') || url('pll');
@@ -70,7 +88,15 @@ function getPosition () {
   }
 }
 
-function createDefaultBaseMapLayers () {
+/**
+ * Initializes and returns a collection of default basemap layers. The function creates a set of base layers
+ * including CartoDB (both dark and light themes), and various Google Maps layers (Default Ingress Map, Roads,
+ * Roads with Traffic, Satellite, Hybrid, and Terrain).
+ *
+ * @returns {Object.<String, Object>} An object containing different basemap layers ready to be added to a map. Each property of the
+ *                   object is a named map layer, with its value being the corresponding Leaflet tile layer object.
+ */
+function createDefaultBaseMapLayers() {
   var baseLayers = {};
 
   /*
@@ -87,81 +113,106 @@ function createDefaultBaseMapLayers () {
 
   // cartodb has some nice tiles too - both dark and light subtle maps - http://cartodb.com/basemaps/
   // (not available over https though - not on the right domain name anyway)
-  var cartoAttr = '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>';
+  var cartoAttr =
+    '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>';
   var cartoUrl = 'https://{s}.basemaps.cartocdn.com/{theme}/{z}/{x}/{y}.png';
-  baseLayers['CartoDB Dark Matter'] = L.tileLayer(cartoUrl, {attribution: cartoAttr, theme: 'dark_all'});
-  baseLayers['CartoDB Positron'] = L.tileLayer(cartoUrl, {attribution: cartoAttr, theme: 'light_all'});
+  baseLayers['CartoDB Dark Matter'] = L.tileLayer(cartoUrl, { attribution: cartoAttr, theme: 'dark_all' });
+  baseLayers['CartoDB Positron'] = L.tileLayer(cartoUrl, { attribution: cartoAttr, theme: 'light_all' });
 
   // Google Maps - including ingress default (using the stock-intel API-key)
-  baseLayers['Google Default Ingress Map'] = L.gridLayer.googleMutant(
-    { type: 'roadmap',
-      backgroundColor: '#0e3d4e',
-      styles: [
-        { featureType: 'all', elementType: 'all',
-          stylers: [{visibility: 'on'}, {hue: '#131c1c'}, {saturation: '-50'}, {invert_lightness: true}] },
-        { featureType: 'water', elementType: 'all',
-          stylers: [{visibility: 'on'}, {hue: '#005eff'}, {invert_lightness: true}] },
-        { featureType: 'poi', stylers: [{visibility: 'off'}] },
-        { featureType: 'transit', elementType: 'all', stylers: [{visibility: 'off'}] },
-        { featureType: 'road', elementType: 'labels.icon', stylers: [{invert_lightness: !0}] }
-      ],
-    });
-  baseLayers['Google Roads'] = L.gridLayer.googleMutant({type: 'roadmap'});
-  var trafficMutant = L.gridLayer.googleMutant({type: 'roadmap'});
+  baseLayers['Google Default Ingress Map'] = L.gridLayer.googleMutant({
+    type: 'roadmap',
+    backgroundColor: '#0e3d4e',
+    styles: [
+      { featureType: 'all', elementType: 'all', stylers: [{ visibility: 'on' }, { hue: '#131c1c' }, { saturation: '-50' }, { invert_lightness: true }] },
+      { featureType: 'water', elementType: 'all', stylers: [{ visibility: 'on' }, { hue: '#005eff' }, { invert_lightness: true }] },
+      { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+      { featureType: 'transit', elementType: 'all', stylers: [{ visibility: 'off' }] },
+      { featureType: 'road', elementType: 'labels.icon', stylers: [{ invert_lightness: !0 }] },
+    ],
+  });
+  baseLayers['Google Roads'] = L.gridLayer.googleMutant({ type: 'roadmap' });
+  var trafficMutant = L.gridLayer.googleMutant({ type: 'roadmap' });
   trafficMutant.addGoogleLayer('TrafficLayer');
   baseLayers['Google Roads + Traffic'] = trafficMutant;
-  baseLayers['Google Satellite'] = L.gridLayer.googleMutant({type: 'satellite'});
-  baseLayers['Google Hybrid'] = L.gridLayer.googleMutant({type: 'hybrid'});
-  baseLayers['Google Terrain'] = L.gridLayer.googleMutant({type: 'terrain'});
+  var transitMutant = L.gridLayer.googleMutant({ type: 'roadmap' });
+  transitMutant.addGoogleLayer('TransitLayer');
+  baseLayers['Google Roads + Transit'] = transitMutant;
+  baseLayers['Google Satellite'] = L.gridLayer.googleMutant({ type: 'satellite' });
+  baseLayers['Google Hybrid'] = L.gridLayer.googleMutant({ type: 'hybrid' });
+  baseLayers['Google Terrain'] = L.gridLayer.googleMutant({ type: 'terrain' });
 
   return baseLayers;
 }
 
-function createDefaultOverlays () {
-  /* global portalsFactionLayers: true, linksFactionLayers: true, fieldsFactionLayers: true -- eslint*/
-  /* eslint-disable dot-notation  */
-
+/**
+ * Creates and returns the default overlay layers for the map.
+ * Sets up various overlay layers including portals, links, fields, and faction-specific layers.
+ *
+ * @function createDefaultOverlays
+ * @returns {Object.<String, L.LayerGroup>} An object containing overlay layers for portals, links, fields, and factions
+ */
+function createDefaultOverlays() {
   var addLayers = {};
 
-  portalsFactionLayers = [];
-  var portalsLayers = [];
-  for (var i = 0; i <= 8; i++) {
-    portalsFactionLayers[i] = [L.layerGroup(), L.layerGroup(), L.layerGroup()];
-    portalsLayers[i] = L.layerGroup();
-    var t = (i === 0 ? 'Unclaimed/Placeholder' : 'Level ' + i) + ' Portals';
-    addLayers[t] = portalsLayers[i];
+  var l0Layer = new IITC.filters.FilterLayer({
+    name: 'Unclaimed/Placeholder Portals',
+    filter: [
+      { portal: true, data: { team: 'N' } },
+      { portal: true, data: { level: undefined } },
+    ],
+  });
+  addLayers[l0Layer.options.name] = l0Layer;
+  for (var i = 1; i <= 8; i++) {
+    var t = 'Level ' + i + ' Portals';
+    var portalsLayer = new IITC.filters.FilterLayer({
+      name: t,
+      filter: [
+        { portal: true, data: { level: i, team: 'R' } },
+        { portal: true, data: { level: i, team: 'E' } },
+        { portal: true, data: { level: i, team: 'M' } },
+      ],
+    });
+    addLayers[t] = portalsLayer;
   }
 
-  fieldsFactionLayers = [L.layerGroup(), L.layerGroup(), L.layerGroup()];
-  var fieldsLayer = L.layerGroup();
-  addLayers['Fields'] = fieldsLayer;
+  var fieldsLayer = new IITC.filters.FilterLayer({
+    name: 'Fields',
+    filter: { field: true },
+  });
+  addLayers[fieldsLayer.options.name] = fieldsLayer;
 
-  linksFactionLayers = [L.layerGroup(), L.layerGroup(), L.layerGroup()];
-  var linksLayer = L.layerGroup();
-  addLayers['Links'] = linksLayer;
+  var linksLayer = new IITC.filters.FilterLayer({
+    name: 'Links',
+    filter: { link: true },
+  });
+  addLayers[linksLayer.options.name] = linksLayer;
 
   // faction-specific layers
-  // these layers don't actually contain any data. instead, every time they're added/removed from the map,
-  // the matching sub-layers within the above portals/fields/links are added/removed from their parent with
-  // the below 'onoverlayadd/onoverlayremove' events
-  var factionLayers = [L.layerGroup(), L.layerGroup(), L.layerGroup()];
-  factionLayers.forEach(function (facLayer, facIdx) {
-    facLayer.on('add remove', function (e) {
-      var fn = e.type + 'Layer';
-      fieldsLayer[fn](fieldsFactionLayers[facIdx]);
-      linksLayer[fn](linksFactionLayers[facIdx]);
-      portalsLayers.forEach(function (portals, lvl) {
-        portals[fn](portalsFactionLayers[lvl][facIdx]);
-      });
-    });
-    addLayers[window.TEAM_NAMES[facIdx]] = facLayer;
+  var resistanceLayer = new IITC.filters.FilterLayer({
+    name: window.TEAM_NAME_RES,
+    filter: { portal: true, link: true, field: true, data: { team: 'R' } },
+  });
+  var enlightenedLayer = new IITC.filters.FilterLayer({
+    name: window.TEAM_NAME_ENL,
+    filter: { portal: true, link: true, field: true, data: { team: 'E' } },
+  });
+  var machinaLayer = new IITC.filters.FilterLayer({
+    name: window.TEAM_NAME_MAC,
+    filter: { portal: true, link: true, field: true, data: { team: 'M' } },
   });
 
   // to avoid any favouritism, we'll put the player's own faction layer first
-  if (window.PLAYER.team !== 'RESISTANCE') {
-    delete addLayers['Resistance'];
-    addLayers['Resistance'] = factionLayers[window.TEAM_RES];
+  if (window.PLAYER.team === 'RESISTANCE') {
+    addLayers[resistanceLayer.options.name] = resistanceLayer;
+    addLayers[enlightenedLayer.options.name] = enlightenedLayer;
+  } else {
+    addLayers[enlightenedLayer.options.name] = enlightenedLayer;
+    addLayers[resistanceLayer.options.name] = resistanceLayer;
   }
+
+  // and just put __MACHINA__ faction last
+  addLayers[window.TEAM_NAME_MAC] = machinaLayer;
 
   return addLayers;
   /* eslint-enable dot-notation  */
@@ -169,63 +220,89 @@ function createDefaultOverlays () {
 
 // to be extended in app.js (or by plugins: `setup.priority = 'boot';`)
 window.mapOptions = {
-  preferCanvas: 'PREFER_CANVAS' in window
-    ? window.PREFER_CANVAS
-    : true // default
+  preferCanvas: 'PREFER_CANVAS' in window ? window.PREFER_CANVAS : true, // default is TRUE
 };
 
+/**
+ * Initializes the Leaflet map and configures various map layers and event listeners.
+ * This function is responsible for setting up the base map,
+ * including the default basemap tiles (CartoDB, Default Ingress Map, Google Maps),
+ * and configuring the map's properties such as center, zoom, bounds, and renderer options.
+ * It also clears the 'Loading, please wait' message from the map container.
+ *
+ * Important functionalities:
+ * - Adds dummy divs to Leaflet control areas to accommodate IITC UI elements.
+ * - Creates and adds base layers and overlays to the map.
+ * - Configures event listeners for map movements, including aborting pending requests and refreshing map data.
+ * - Manages cookies for map position and zoom level.
+ * - Handles the 'iitcLoaded' hook to set the initial map view and evaluate URL parameters for portal selection.
+ *
+ * @function setupMap
+ */
 window.setupMap = function () {
   setupCRS();
 
   $('#map').text(''); // clear 'Loading, please wait'
 
-  var map = L.map('map', L.extend({
-    // proper initial position is now delayed until all plugins are loaded and the base layer is set
-    center: [0, 0],
-    zoom: 1,
-    crs: L.CRS.S2,
-    minZoom: window.MIN_ZOOM,
-    // zoomAnimation: false,
-    markerZoomAnimation: false,
-    bounceAtZoomLimits: false,
-    maxBoundsViscosity: 0.7,
-    worldCopyJump: true,
-  }, window.mapOptions));
+  var map = L.map(
+    'map',
+    L.extend(
+      {
+        // proper initial position is now delayed until all plugins are loaded and the base layer is set
+        center: [0, 0],
+        zoom: 1,
+        crs: L.CRS.S2,
+        minZoom: window.MIN_ZOOM,
+        // zoomAnimation: false,
+        markerZoomAnimation: false,
+        bounceAtZoomLimits: false,
+        maxBoundsViscosity: 0.7,
+        worldCopyJump: true,
+      },
+      window.mapOptions
+    )
+  );
   var max_lat = map.options.crs.projection.MAX_LATITUDE;
-  map.setMaxBounds([[max_lat, 360], [-max_lat, -360]]);
+  map.setMaxBounds([
+    [max_lat, 360],
+    [-max_lat, -360],
+  ]);
 
   L.Renderer.mergeOptions({
-    padding: window.RENDERER_PADDING || 0.5
+    padding: window.RENDERER_PADDING || 0.5,
   });
 
   // add empty div to leaflet control areas - to force other leaflet controls to move around IITC UI elements
   // TODO? move the actual IITC DOM into the leaflet control areas, so dummy <div>s aren't needed
-  if (!isSmartphone()) {
+  if (!window.isSmartphone()) {
     // chat window area
-    $('<div>').addClass('leaflet-control')
-      .width(708).height(108)
+    $('<div>')
+      .addClass('leaflet-control')
+      .width(708)
+      .height(108)
       .css({
         'pointer-events': 'none',
-        'margin': '0'
-      }).appendTo(map._controlCorners.bottomleft);
+        margin: '0',
+      })
+      .appendTo(map._controlCorners.bottomleft);
   }
   var baseLayers = createDefaultBaseMapLayers();
   var overlays = createDefaultOverlays();
-  map.addLayer(overlays.Neutral);
-  delete overlays.Neutral;
 
-  var layerChooser = window.layerChooser = new window.LayerChooser(baseLayers, overlays, {map: map})
-    .addTo(map);
+  var layerChooser = (window.layerChooser = new window.LayerChooser(baseLayers, overlays, { map: map }).addTo(map));
 
   $.each(overlays, function (_, layer) {
-    if (map.hasLayer(layer)) { return true; } // continue
+    if (map.hasLayer(layer)) {
+      return true;
+    } // continue
 
     // as users often become confused if they accidentally switch a standard layer off, display a warning in this case
-    $('#portaldetails')
-      .html('<div class="layer_off_warning">'
-         + '<p><b>Warning</b>: some of the standard layers are turned off. Some portals/links/fields will not be visible.</p>'
-         + '<a id="enable_standard_layers">Enable standard layers</a>'
-         + '</div>');
+    $('#portaldetails').html(
+      '<div class="layer_off_warning">' +
+        '<p><b>Warning</b>: some of the standard layers are turned off. Some portals/links/fields will not be visible.</p>' +
+        '<a id="enable_standard_layers">Enable standard layers</a>' +
+        '</div>'
+    );
     $('#enable_standard_layers').on('click', function () {
       $.each(overlays, function (ind, overlay) {
         if (!map.hasLayer(overlay)) {
@@ -251,13 +328,11 @@ window.setupMap = function () {
   // map update status handling & update map hooks
   // ensures order of calls
   map.on('movestart', function () {
-    window.mapRunsUserAction = true;
     window.requests.abort();
     window.startRefreshTimeout(-1);
   });
   map.on('moveend', function () {
-    window.mapRunsUserAction = false;
-    window.startRefreshTimeout(window.ON_MOVE_REFRESH*1000);
+    window.startRefreshTimeout(window.ON_MOVE_REFRESH * 1000);
   });
 
   // set a 'moveend' handler for the map to clear idle state. e.g. after mobile 'my location' is used.
@@ -265,7 +340,7 @@ window.setupMap = function () {
   map.on('moveend', window.idleReset);
 
   window.addResumeFunction(function () {
-    window.startRefreshTimeout(window.ON_MOVE_REFRESH*1000);
+    window.startRefreshTimeout(window.ON_MOVE_REFRESH * 1000);
   });
 
   // create the map data requester
@@ -275,7 +350,7 @@ window.setupMap = function () {
   // start the refresh process with a small timeout, so the first data request happens quickly
   // (the code originally called the request function directly, and triggered a normal delay for the next refresh.
   //  however, the moveend/zoomend gets triggered on map load, causing a duplicate refresh. this helps prevent that
-  window.startRefreshTimeout(window.ON_MOVE_REFRESH*1000);
+  window.startRefreshTimeout(window.ON_MOVE_REFRESH * 1000);
 
   // adds a base layer to the map. done separately from the above,
   // so that plugins that add base layers can be the default
@@ -286,10 +361,10 @@ window.setupMap = function () {
     // (setting an initial position, before a base layer is added, causes issues with leaflet) // todo check
     var pos = getPosition();
     if (!pos) {
-      pos = {center: [0, 0], zoom: 1};
-      map.locate({setView: true});
+      pos = { center: [0, 0], zoom: 1 };
+      map.locate({ setView: true });
     }
-    map.setView(pos.center, pos.zoom, {reset: true});
+    map.setView(pos.center, pos.zoom, { reset: true });
 
     // read here ONCE, so the URL is only evaluated one time after the
     // necessary data has been loaded.

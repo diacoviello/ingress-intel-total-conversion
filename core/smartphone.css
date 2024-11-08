@@ -69,7 +69,7 @@ body {
   height: 6px;
   width: 6px;
   left: 50%;
-  top: -3px; 
+  top: -3px;
   margin-left: -3px;
   position: absolute;
   z-index: -1;
@@ -89,12 +89,40 @@ body {
   background-color: #00c5ff !important;
 }
 
-#name #signout { /* no hover, always show signout button */
-  display: block;
+#mobileinfo .mac .filllevel {
+  background-color: #ff0028 !important;
 }
 
-#sidebar, #chatcontrols, #chat, #chatinput {
-  background: transparent !important;
+#playerstat {
+  height: initial;
+}
+
+#playerstat h2 {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 5px;
+}
+
+#playerstat h2 #name {
+  display: flex;
+  align-items: center;
+}
+
+#playerstat h2 #name .playername,
+#playerstat h2 #name:hover .playername{
+  max-width: 60vw;
+}
+
+#playerstat h2 #stats {
+  white-space: nowrap;
+  overflow: initial;
+}
+
+#name #signout { /* no hover, always show signout button */
+  display: inline-block;
+  position: initial;
+  margin-left: 4px;
 }
 
 .leaflet-top .leaflet-control {
@@ -102,9 +130,6 @@ body {
   margin-left: 5px !important;
 }
 
-#searchwrapper {
-  font-size: 1.2em;
-}
 #searchwrapper .ui-accordion-header {
   padding: 0.3em 0;
 }
@@ -184,10 +209,6 @@ body {
   width: 100%;
 }
 
-#playerstat {
-  margin-top: 5px;
-}
-
 #portaldetails {
   min-height: 0;
 }
@@ -213,7 +234,7 @@ body {
   border: 2px outset #20A8B1;
 }
 
-#toolbox > a {
+#toolbox > a, #toolbox_component > a {
   padding: 5px;
   margin-top: 3px;
   margin-bottom: 3px;
@@ -232,3 +253,34 @@ body {
    https://github.com/IITC-CE/ingress-intel-total-conversion/issues/89
 */
 .leaflet-bottom { bottom: 5px; }
+
+/* Controls for mobile view without an app */
+:root {
+  --top-controls-height: 38px;
+}
+
+body.show_controls #chatcontrols {
+  display: flex !important;
+  top: 0;
+  overflow-x: auto;
+  width: calc(100% - 1px);
+}
+
+body.show_controls #chatcontrols a {
+  flex: 1;
+  min-width: fit-content;
+  padding: 0 5px;
+}
+
+body.show_controls #map {
+  height: calc(100vh - var(--top-controls-height) - 25px);
+  margin-top: var(--top-controls-height);
+}
+
+body.show_controls #scrollwrapper {
+  margin-top: var(--top-controls-height)
+}
+
+body.show_controls #chat {
+  top: var(--top-controls-height) !important;
+}

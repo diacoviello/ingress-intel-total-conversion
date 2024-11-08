@@ -36,7 +36,7 @@
     <string name="username">Usuario</string>
     <string name="sign_in_to">Inicia sesión en %1$s %2$s</string>
     <string name="msg_take_screenshot">Realizando captura de pantalla…</string>
-    <string name="msg_prepare_screenshot">Preparando...</string>
+    <string name="msg_prepare_screenshot">Preparando…</string>
     <string name="msg_copied">Copiado al portapapeles…</string>
     <string name="intent_error">La dirección no se pudo abrir</string>
     <string name="search_hint">Buscar ubicaciones</string>
@@ -121,6 +121,7 @@
     <string name="appintro_layers_title">Capas/Resaltadores</string>
     <string name="appintro_navigation_description"> Arrastra desde el margen izquierdo de tu pantalla (o haz click en el icono de menú) para abrir el <i>Cajón de navegación</i>
 \nHaz click en el icono atrás para regresar al mapa.
+\n
 \nAlgunos plugins (por ej. <i>portals list</i> y <i>bookmarks</i>) ahora aparecen en el <i>Cajón de navegación</i> para un acceso rápido.
 \n Ya no aparecerán en el panel de Info. </string>
     <string name="plugins_user_plugins">Plugins de usuario</string>
@@ -133,4 +134,13 @@
 \n La principal ventaja sobre el mapa oficial de intel es la abundancia de plugins que expanden las capacidades.
 \n
 \n Puedes añadir plugins oficiales o externos en los ajustes.</string>
+    <string name="pref_webview_zoom_defaultValue">Sistema por defecto</string>
+    <string name="pref_webview_zoom_sum">Afecta al tamaño de la fuente/texto en el panel de información, comandos, ventanas emergentes, etc…</string>
+    <string name="plugins_official_plugins">Plugins Oficiales</string>
+    <string name="pref_webview_zoom">Tamaño de la fuente</string>
+    <string name="menu_plugins_add_url">Añadir plugins por URL</string>
+    <string name="appintro_layers_description"> Desliza el dedo desde el borde derecho de la pantalla (o haz clic en el icono del selector de capas de la Barra de acciones) para acceder al <i>Layer Drawer</i>.
+\n 
+\n Aquí puede cambiar el servicio de mapas en línea o activar/desactivar la visualización de los elementos necesarios en el mapa. </string>
+    <string name="file_browser_is_required">No se ha encontrado ninguna actividad para seleccionar un archivo. Por favor, instale un explorador de archivos de su elección!</string>
 </resources>

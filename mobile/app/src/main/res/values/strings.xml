@@ -72,7 +72,7 @@
         • view the selected portal\'s position in another app<br>
         • open the portal link in a webbrowser<br>
 
-        <p>Hint: By selecting Google Maps (or any other installed navigation software), 
+        <p>Hint: By selecting Google Maps (or any other installed navigation software),
         you can quickly navigate to the selected portal.
         <p>These hints also apply for the <em>permalink</em>.
         ]]>
@@ -131,6 +131,9 @@
     <string name="pref_update_plugins_interval_2_days">2 days</string>
     <string name="pref_update_plugins_interval_1_week">1 week</string>
     <string name="pref_update_plugins_interval_2_weeks">2 weeks</string>
+    <string name="pref_webview_zoom">Font size</string>
+    <string name="pref_webview_zoom_defaultValue">System default</string>
+    <string name="pref_webview_zoom_sum">Affects font/text size in info panel, comm, popup windows, etc…</string>
     <string name="menu_reload">Reload IITC</string>
     <string name="menu_toggle_fullscreen">Fullscreen</string>
     <string name="menu_layer_chooser">Layer Chooser</string>
@@ -141,6 +144,7 @@
     <string name="menu_debug">Debug</string>
     <string name="menu_send_screenshot">Send screenshot</string>
     <string name="menu_plugins_add">Add external plugins</string>
+    <string name="menu_plugins_add_url">Add plugins by URL</string>
     <string name="menu_copy">Copy</string>
     <string name="menu_delete">Delete</string>
     <string name="choose_account_to_login">Choose account to login</string>
@@ -216,6 +220,10 @@
     <string name="pane_alerts">Alerts</string>
     <string name="pane_info">Info</string>
     <string name="pane_map">Map</string>
+    <string name="update_notifications_channel_name">Update notifications</string>
+    <string name="update_notifications_title">"New IITC Mobile version available"</string>
+    <string name="update_notifications_text">A new version %1$s is available. Tap to download.</string>
+    <string name="update_notifications_action_hide_forever">Hide forever</string>
     <string name="cradle_url" translatable="false">https://github.com/leCradle</string>
     <string name="fkloft_url" translatable="false">https://github.com/fkloft</string>
     <string name="giuseppe_lucido_url" translatable="false">http://be.net/giuseppelucido</string>
@@ -252,4 +260,37 @@
     </string>
     <string name="iitc_ce_mobile" translatable="false">IITC-CE Mobile</string>
     <string name="continue_in_english" translatable="false">Continue in English</string>
+    <string name="tab_prime">Ingress</string>
+    <string name="menu_delete_plugin">Delete</string>
+    <string name="delete_plugin_question">Delete plugin \"%s\"?</string>
+    <string name="plugin_deleted">Plugin \"%s\" deleted</string>
+    <string name="button_confirm_description">Yes</string>
+    <string name="button_cancel_description">No</string>
+    <string name="menu_share_plugin_download_url">Share download URL</string>
+    <string name="menu_share_plugin_update_url">Share update URL</string>
+    <string name="menu_share_plugin_file">Share plugin file</string>
+    <string name="pref_debug_info">Debug info</string>
+    <string name="pref_debug_info_sum">Show information important for solving issues with IITC Mobile</string>
+    <string name="debug_info_dialog_title">Debug info</string>
+    <string name="debug_info_dialog_share_btn">Share</string>
+    <string name="debug_info_dialog_copy_btn">Copy</string>
+    <string name="ok">OK</string>
+    <string name="pref_enabled">enabled</string>
+    <string name="pref_disabled">disabled</string>
+    <string name="debug_info_dialog_text" translatable="false">
+        <![CDATA[
+        <b>Manufacturer:</b> %s<br/>
+        <b>Model:</b> %s<br/>
+        <b>Android version:</b> %d<br/>
+        <b>Android version release:</b> %s<br/>
+        <b>IITC Mobile version:</b> %s (%s)<br/>
+        <b>IITC Version:</b> %s<br/>
+        <b>System User Agent:</b> %s<br/>
+        <b>Default IITC User Agent:</b> %s<br/>
+        <b>Fake user agent:</b> %s<br/>
+        <b>Active user plugins:</b> %d<br/>
+        ]]>
+    </string>
+    <string name="pref_check_for_updates">Update check</string>
+    <string name="pref_check_for_updates_summary">Check for updates on startup</string>
 </resources>

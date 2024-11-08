@@ -29,7 +29,13 @@ public class IITC_JSInterface {
     @JavascriptInterface
     public void intentPosLink(
             final double lat, final double lng, final int zoom, final String title, final boolean isPortal) {
-        mIitc.startActivity(ShareActivity.forPosition(mIitc, lat, lng, zoom, title, isPortal));
+        this.intentPosLink(lat, lng, zoom, title, isPortal, null);
+    }
+
+    @JavascriptInterface
+    public void intentPosLink(
+            final double lat, final double lng, final int zoom, final String title, final boolean isPortal, final String guid) {
+        mIitc.startActivity(ShareActivity.forPosition(mIitc, lat, lng, zoom, title, isPortal, guid));
     }
 
     // share a string to the IITC share activity. only uses the share tab.
@@ -217,5 +223,10 @@ public class IITC_JSInterface {
             if (clearCache) mIitc.getWebView().clearCache(true);
             mIitc.reloadIITC();
         });
+    }
+
+    @JavascriptInterface
+    public void addInternalHostname(String hostname) {
+        mIitc.addInternalHostname(hostname);
     }
 }

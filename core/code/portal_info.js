@@ -1,110 +1,142 @@
-// PORTAL DETAILS TOOLS //////////////////////////////////////////////
-// hand any of these functions the details-hash of a portal, and they
-// will return useful, but raw data.
+/**
+ * @file This file contains functions that handle the extraction and computation of raw data
+ * from portal details for various purposes.
+ * @module portal_info
+ */
 
-// returns a float. Displayed portal level is always rounded down from
-// that value.
-window.getPortalLevel = function(d) {
+/**
+ * Calculates the displayed level of a portal, which is always rounded down from the actual float value.
+ *
+ * @function getPortalLevel
+ * @param {Object} d - The portal detail object containing resonator information.
+ * @returns {number} The calculated portal level.
+ */
+window.getPortalLevel = function (d) {
   var lvl = 0;
   var hasReso = false;
-  $.each(d.resonators, function(ind, reso) {
-    if(!reso) return true;
+  $.each(d.resonators, function (ind, reso) {
+    if (!reso) return true;
     lvl += parseInt(reso.level);
     hasReso = true;
   });
-  return hasReso ? Math.max(1, lvl/8) : 0;
-}
+  return hasReso ? Math.max(1, lvl / 8) : 0;
+};
 
-window.getTotalPortalEnergy = function(d) {
+/**
+ * Calculates the total energy capacity of a portal based on its resonators.
+ *
+ * @function getTotalPortalEnergy
+ * @param {Object} d - The portal detail object containing resonator information.
+ * @returns {number} The total energy capacity of the portal.
+ */
+window.getTotalPortalEnergy = function (d) {
   var nrg = 0;
-  $.each(d.resonators, function(ind, reso) {
-    if(!reso) return true;
+  $.each(d.resonators, function (ind, reso) {
+    if (!reso) return true;
     var level = parseInt(reso.level);
-    var max = RESO_NRG[level];
+    var max = window.RESO_NRG[level];
     nrg += max;
   });
   return nrg;
-}
+};
 
 // For backwards compatibility
 window.getPortalEnergy = window.getTotalPortalEnergy;
 
-window.getCurrentPortalEnergy = function(d) {
+/**
+ * Calculates the current energy of a portal based on its resonators.
+ *
+ * @function getCurrentPortalEnergy
+ * @param {Object} d - The portal detail object containing resonator information.
+ * @returns {number} The current energy of the portal.
+ */
+window.getCurrentPortalEnergy = function (d) {
   var nrg = 0;
-  $.each(d.resonators, function(ind, reso) {
-    if(!reso) return true;
+  $.each(d.resonators, function (ind, reso) {
+    if (!reso) return true;
     nrg += parseInt(reso.energy);
   });
   return nrg;
-}
+};
 
-window.getPortalRange = function(d) {
+/**
+ * Calculates the range of a portal for creating links. The range depends on portal level and any installed Link Amps.
+ *
+ * @function getPortalRange
+ * @param {Object} d - The portal detail object containing details about the team and resonators.
+ * @returns {Object} An object containing the base range (`base`), boost multiplier (`boost`),
+ *                   total range after applying the boost (`range`),
+ *                   and a boolean indicating if the portal is linkable (`isLinkable`).
+ */
+window.getPortalRange = function (d) {
   // formula by the great gals and guys at
   // http://decodeingress.me/2012/11/18/ingress-portal-levels-and-link-range/
-
-  var lvl = 0;
-  var resoMissing = false;
-  // currently we get a short resonator array when some are missing
-  if (d.resonators.length < 8) {
-    resoMissing = true;
-  }
-  // but in the past we used to always get an array of 8, but will 'null' objects for some entries. maybe that will return?
-  $.each(d.resonators, function(ind, reso) {
-    if(!reso) {
-      resoMissing = true;
-      return;
-    }
-  });
-
   var range = {
-    base: 160*Math.pow(getPortalLevel(d), 4),
-    boost: getLinkAmpRangeBoost(d)
+    base: window.teamStringToId(d.team) === window.TEAM_MAC ? window.LINK_RANGE_MAC[d.level + 1] : 160 * Math.pow(window.getPortalLevel(d), 4),
+    boost: window.getLinkAmpRangeBoost(d),
   };
 
   range.range = range.boost * range.base;
-  range.isLinkable = !resoMissing;
+  range.isLinkable = d.resCount === 8;
 
   return range;
-}
+};
 
-window.getLinkAmpRangeBoost = function(d) {
+/**
+ * Calculates the boost in link range provided by installed Link Amps.
+ *
+ * @function getLinkAmpRangeBoost
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {number} The total boost factor for the link range.
+ */
+window.getLinkAmpRangeBoost = function (d) {
+  if (window.teamStringToId(d.team) === window.TEAM_MAC) {
+    return 1.0;
+  }
   // additional range boost calculation
 
   // link amps scale: first is full, second a quarter, the last two an eighth
   var scale = [1.0, 0.25, 0.125, 0.125];
 
-  var boost = 0.0;  // initial boost is 0.0 (i.e. no boost over standard range)
+  var boost = 0.0; // initial boost is 0.0 (i.e. no boost over standard range)
 
-  var linkAmps = getPortalModsByType(d, 'LINK_AMPLIFIER');
+  var linkAmps = window.getPortalModsByType(d, 'LINK_AMPLIFIER');
 
-  linkAmps.forEach(function(mod, i) {
+  linkAmps.forEach(function (mod, i) {
     // link amp stat LINK_RANGE_MULTIPLIER is 2000 for rare, and gives 2x boost to the range
     // and very-rare is 7000 and gives 7x the range
-    var baseMultiplier = mod.stats.LINK_RANGE_MULTIPLIER/1000;
-    boost += baseMultiplier*scale[i];
+    var baseMultiplier = mod.stats.LINK_RANGE_MULTIPLIER / 1000;
+    boost += baseMultiplier * scale[i];
   });
 
-  return (linkAmps.length > 0) ? boost : 1.0;
-}
+  return linkAmps.length > 0 ? boost : 1.0;
+};
 
-
-window.getAttackApGain = function(d,fieldCount,linkCount) {
+/**
+ * Calculates the potential AP gain from attacking a portal.
+ *
+ * @function getAttackApGain
+ * @param {Object} d - The portal detail object containing resonator and ownership information.
+ * @param {number} fieldCount - The number of fields attached to the portal.
+ * @param {number} linkCount - The number of links attached to the portal.
+ * @returns {Object} An object detailing various components of AP gain, including totals for friendly and enemy factions.
+ */
+window.getAttackApGain = function (d, fieldCount, linkCount) {
   if (!fieldCount) fieldCount = 0;
 
   var resoCount = 0;
-  var maxResonators = MAX_RESO_PER_PLAYER.slice(0);
-  var curResonators = [ 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  var maxResonators = window.MAX_RESO_PER_PLAYER.slice(0);
+  var curResonators = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-  for(var n = PLAYER.level + 1; n < 9; n++) {
+  for (let n = window.PLAYER.level + 1; n < 9; n++) {
     maxResonators[n] = 0;
   }
-  $.each(d.resonators, function(ind, reso) {
-    if(!reso)
-      return true;
+  $.each(d.resonators, function (ind, reso) {
+    if (!reso) return true;
     resoCount += 1;
-    var reslevel=parseInt(reso.level);
-    if(reso.owner === PLAYER.nickname) {
-      if(maxResonators[reslevel] > 0) {
+    var reslevel = parseInt(reso.level);
+    if (reso.owner === window.PLAYER.nickname) {
+      if (maxResonators[reslevel] > 0) {
         maxResonators[reslevel] -= 1;
       }
     } else {
@@ -112,25 +144,24 @@ window.getAttackApGain = function(d,fieldCount,linkCount) {
     }
   });
 
-
-  var resoAp = resoCount * DESTROY_RESONATOR;
-  var linkAp = linkCount * DESTROY_LINK;
-  var fieldAp = fieldCount * DESTROY_FIELD;
+  var resoAp = resoCount * window.DESTROY_RESONATOR;
+  var linkAp = linkCount * window.DESTROY_LINK;
+  var fieldAp = fieldCount * window.DESTROY_FIELD;
   var destroyAp = resoAp + linkAp + fieldAp;
-  var captureAp = CAPTURE_PORTAL + 8 * DEPLOY_RESONATOR + COMPLETION_BONUS;
+  var captureAp = window.CAPTURE_PORTAL + 8 * window.DEPLOY_RESONATOR + window.COMPLETION_BONUS;
   var enemyAp = destroyAp + captureAp;
   var deployCount = 8 - resoCount;
-  var completionAp = (deployCount > 0) ? COMPLETION_BONUS : 0;
+  var completionAp = deployCount > 0 ? window.COMPLETION_BONUS : 0;
   var upgradeCount = 0;
   var upgradeAvailable = maxResonators[8];
-  for(var n = 7; n >= 0; n--) {
+  for (let n = 7; n >= 0; n--) {
     upgradeCount += curResonators[n];
-    if(upgradeAvailable < upgradeCount) {
-        upgradeCount -= (upgradeCount - upgradeAvailable);
+    if (upgradeAvailable < upgradeCount) {
+      upgradeCount -= upgradeCount - upgradeAvailable;
     }
     upgradeAvailable += maxResonators[n];
   }
-  var friendlyAp = deployCount * DEPLOY_RESONATOR + upgradeCount * UPGRADE_ANOTHERS_RESONATOR + completionAp;
+  var friendlyAp = deployCount * window.DEPLOY_RESONATOR + upgradeCount * window.UPGRADE_ANOTHERS_RESONATOR + completionAp;
   return {
     friendlyAp: friendlyAp,
     deployCount: deployCount,
@@ -138,71 +169,43 @@ window.getAttackApGain = function(d,fieldCount,linkCount) {
     enemyAp: enemyAp,
     destroyAp: destroyAp,
     resoAp: resoAp,
-    captureAp: captureAp
+    captureAp: captureAp,
   };
-}
+};
 
-//This function will return the potential level a player can upgrade it to
-window.potentialPortalLevel = function(d) {
-  var current_level = getPortalLevel(d);
-  var potential_level = current_level;
-  
-  if(PLAYER.team === d.team) {
-    var resonators_on_portal = d.resonators;
-    var resonator_levels = new Array();
-    // figure out how many of each of these resonators can be placed by the player
-    var player_resontators = new Array();
-    for(var i=1;i<=MAX_PORTAL_LEVEL; i++) {
-      player_resontators[i] = i > PLAYER.level ? 0 : MAX_RESO_PER_PLAYER[i];
-    }
-    $.each(resonators_on_portal, function(ind, reso) {
-      if(reso !== null && reso.owner === window.PLAYER.nickname) {
-        player_resontators[reso.level]--;
-      }
-      resonator_levels.push(reso === null ? 0 : reso.level);  
-    });
-    
-    resonator_levels.sort(function(a, b) {
-      return(a - b);
-    });
-    
-    // Max out portal
-    var install_index = 0;
-    for(var i=MAX_PORTAL_LEVEL;i>=1; i--) {
-      for(var install = player_resontators[i]; install>0; install--) {
-        if(resonator_levels[install_index] < i) {
-          resonator_levels[install_index] = i;
-          install_index++;
-        }
-      }
-    }
-    //log.log(resonator_levels);
-    potential_level = resonator_levels.reduce(function(a, b) {return a + b;}) / 8;
-  }
-  return(potential_level);
-}
-
-
-window.fixPortalImageUrl = function(url) {
+/**
+ * Corrects the portal image URL to match the current protocol (http/https).
+ *
+ * @function fixPortalImageUrl
+ * @param {string} url - The original image URL.
+ * @returns {string} The corrected image URL.
+ */
+window.fixPortalImageUrl = function (url) {
   if (url) {
     if (window.location.protocol === 'https:') {
       url = url.replace(/^http:\/\//, '//');
     }
     return url;
   } else {
-    return DEFAULT_PORTAL_IMG;
+    return window.DEFAULT_PORTAL_IMG;
   }
+};
 
-}
-
-
-window.getPortalModsByType = function(d, type) {
+/**
+ * Returns a list of portal mods filtered by a specific type.
+ *
+ * @function getPortalModsByType
+ * @param {Object} d - The portal detail object containing mod information.
+ * @param {string} type - The type of mods to filter (e.g., 'RES_SHIELD', 'LINK_AMPLIFIER').
+ * @returns {Array} An array of mods matching the specified type.
+ */
+window.getPortalModsByType = function (d, type) {
   var mods = [];
 
   var typeToStat = {
     RES_SHIELD: 'MITIGATION',
     FORCE_AMP: 'FORCE_AMPLIFIER',
-    TURRET: 'HIT_BONUS',  // and/or ATTACK_FREQUENCY??
+    TURRET: 'HIT_BONUS', // and/or ATTACK_FREQUENCY??
     HEATSINK: 'HACK_SPEED',
     MULTIHACK: 'BURNOUT_INSULATION',
     LINK_AMPLIFIER: 'LINK_RANGE_MULTIPLIER',
@@ -211,34 +214,45 @@ window.getPortalModsByType = function(d, type) {
 
   var stat = typeToStat[type];
 
-  $.each(d.mods || [], function(i,mod) {
-    if (mod && mod.stats.hasOwnProperty(stat)) mods.push(mod);
+  $.each(d.mods || [], function (i, mod) {
+    if (mod && Object.hasOwn(mod.stats, stat)) mods.push(mod);
   });
 
-
   // sorting mods by the stat keeps code simpler, when calculating combined mod effects
-  mods.sort (function(a,b) {
+  mods.sort(function (a, b) {
     return b.stats[stat] - a.stats[stat];
   });
 
   return mods;
-}
+};
 
-
-
-window.getPortalShieldMitigation = function(d) {
-  var shields = getPortalModsByType(d, 'RES_SHIELD');
+/**
+ * Calculates the total mitigation provided by shields installed on a portal.
+ *
+ * @function getPortalShieldMitigation
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {number} The total mitigation value from all shields installed on the portal.
+ */
+window.getPortalShieldMitigation = function (d) {
+  var shields = window.getPortalModsByType(d, 'RES_SHIELD');
 
   var mitigation = 0;
-  $.each(shields, function(i,s) {
+  $.each(shields, function (i, s) {
     mitigation += parseInt(s.stats.MITIGATION);
   });
 
   return mitigation;
-}
+};
 
-window.getPortalLinkDefenseBoost = function(d) {
-  var ultraLinkAmps = getPortalModsByType(d, 'ULTRA_LINK_AMP');
+/**
+ * Calculates the link defense boost provided by installed Ultra Link Amps.
+ *
+ * @function getPortalLinkDefenseBoost
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {number} The total link defense boost factor.
+ */
+window.getPortalLinkDefenseBoost = function (d) {
+  var ultraLinkAmps = window.getPortalModsByType(d, 'ULTRA_LINK_AMP');
 
   var linkDefenseBoost = 1;
 
@@ -247,74 +261,107 @@ window.getPortalLinkDefenseBoost = function(d) {
   });
 
   return Math.round(10 * linkDefenseBoost) / 10;
-}
+};
 
-window.getPortalLinksMitigation = function(linkCount) {
-  var mitigation = Math.round(400/9*Math.atan(linkCount/Math.E));
+/**
+ * Calculates the additional mitigation provided by links attached to a portal.
+ *
+ * @function getPortalLinksMitigation
+ * @param {number} linkCount - The number of links attached to the portal.
+ * @returns {number} The additional mitigation value provided by the links.
+ */
+window.getPortalLinksMitigation = function (linkCount) {
+  var mitigation = Math.round((400 / 9) * Math.atan(linkCount / Math.E));
   return mitigation;
-}
+};
 
-window.getPortalMitigationDetails = function(d,linkCount) {
-  var linkDefenseBoost = getPortalLinkDefenseBoost(d);
+/**
+ * Calculates detailed mitigation information for a portal, including contributions from shields and links.
+ *
+ * @function getPortalMitigationDetails
+ * @param {Object} d - The portal detail object containing mod and resonator information.
+ * @param {number} linkCount - The number of links attached to the portal.
+ * @returns {Object} An object detailing various components of mitigation.
+ */
+window.getPortalMitigationDetails = function (d, linkCount) {
+  var linkDefenseBoost = window.getPortalLinkDefenseBoost(d);
 
   var mitigation = {
-    shields: getPortalShieldMitigation(d),
-    links: getPortalLinksMitigation(linkCount) * linkDefenseBoost,
-    linkDefenseBoost: linkDefenseBoost
+    shields: window.getPortalShieldMitigation(d),
+    links: window.getPortalLinksMitigation(linkCount) * linkDefenseBoost,
+    linkDefenseBoost: linkDefenseBoost,
   };
 
   // mitigation is limited to 95% (as confirmed by Brandon Badger on G+)
-  mitigation.total = Math.min(95, mitigation.shields+mitigation.links);
+  mitigation.total = Math.min(95, mitigation.shields + mitigation.links);
 
-  var excess = (mitigation.shields+mitigation.links) - mitigation.total;
+  var excess = mitigation.shields + mitigation.links - mitigation.total;
   mitigation.excess = Math.round(10 * excess) / 10;
 
   return mitigation;
-}
+};
 
-window.getMaxOutgoingLinks = function(d) {
-  var linkAmps = getPortalModsByType(d, 'ULTRA_LINK_AMP');
+/**
+ * Calculates the maximum number of outgoing links that can be created from a portal.
+ *
+ * @function getMaxOutgoingLinks
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {number} The maximum number of outgoing links.
+ */
+window.getMaxOutgoingLinks = function (d) {
+  var linkAmps = window.getPortalModsByType(d, 'ULTRA_LINK_AMP');
 
   var links = 8;
 
-  linkAmps.forEach(function(mod, i) {
+  linkAmps.forEach(function (mod) {
     links += parseInt(mod.stats.OUTGOING_LINKS_BONUS);
   });
 
   return links;
 };
 
-window.getPortalHackDetails = function(d) {
-
-  var heatsinks = getPortalModsByType(d, 'HEATSINK');
-  var multihacks = getPortalModsByType(d, 'MULTIHACK');
+/**
+ * Calculates hack-related details of a portal, such as hack cooldown and burnout time.
+ *
+ * @function getPortalHackDetails
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {Object} An object containing hack-related details like cooldown time, hack count, and burnout time.
+ */
+window.getPortalHackDetails = function (d) {
+  var heatsinks = window.getPortalModsByType(d, 'HEATSINK');
+  var multihacks = window.getPortalModsByType(d, 'MULTIHACK');
 
   // first mod of type is fully effective, the others are only 50% effective
-  var effectivenessReduction = [ 1, 0.5, 0.5, 0.5 ];
+  var effectivenessReduction = [1, 0.5, 0.5, 0.5];
 
-  var cooldownTime = BASE_HACK_COOLDOWN;
+  var cooldownTime = window.BASE_HACK_COOLDOWN;
 
-  $.each(heatsinks, function(index,mod) {
-    var hackSpeed = parseInt(mod.stats.HACK_SPEED)/1000000;
+  $.each(heatsinks, function (index, mod) {
+    var hackSpeed = parseInt(mod.stats.HACK_SPEED) / 1000000;
     cooldownTime = Math.round(cooldownTime * (1 - hackSpeed * effectivenessReduction[index]));
   });
 
-  var hackCount = BASE_HACK_COUNT; // default hacks
+  var hackCount = window.BASE_HACK_COUNT; // default hacks
 
-  $.each(multihacks, function(index,mod) {
+  $.each(multihacks, function (index, mod) {
     var extraHacks = parseInt(mod.stats.BURNOUT_INSULATION);
-    hackCount = hackCount + (extraHacks * effectivenessReduction[index]);
+    hackCount = hackCount + extraHacks * effectivenessReduction[index];
   });
 
-  return {cooldown: cooldownTime, hacks: hackCount, burnout: cooldownTime*(hackCount-1)};
-}
+  return { cooldown: cooldownTime, hacks: hackCount, burnout: cooldownTime * (hackCount - 1) };
+};
 
-// given a detailed portal structure, return summary portal data, as seen in the map tile data
-window.getPortalSummaryData = function(d) {
-
+/**
+ * Converts detailed portal information into a summary format similar to that seen in the map tile data.
+ *
+ * @function getPortalSummaryData
+ * @param {Object} d - The detailed portal data.
+ * @returns {Object} A summary of the portal data, including level, title, image, resonator count, health, and team.
+ */
+window.getPortalSummaryData = function (d) {
   // NOTE: the summary data reports unclaimed portals as level 1 - not zero as elsewhere in IITC
-  var level = parseInt(getPortalLevel(d));
-  if (level == 0) level = 1; //niantic returns neutral portals as level 1, not 0 as used throughout IITC elsewhere
+  var level = Math.floor(window.getPortalLevel(d));
+  if (level === 0) level = 1; // niantic returns neutral portals as level 1, not 0 as used throughout IITC elsewhere
 
   var resCount = 0;
   if (d.resonators) {
@@ -322,9 +369,9 @@ window.getPortalSummaryData = function(d) {
       if (d.resonators[x]) resCount++;
     }
   }
-  var maxEnergy = getTotalPortalEnergy(d);
-  var curEnergy = getCurrentPortalEnergy(d);
-  var health = maxEnergy>0 ? parseInt(curEnergy/maxEnergy*100) : 0;
+  var maxEnergy = window.getTotalPortalEnergy(d);
+  var curEnergy = window.getCurrentPortalEnergy(d);
+  var health = maxEnergy > 0 ? Math.floor((curEnergy / maxEnergy) * 100) : 0;
 
   return {
     level: level,
@@ -335,13 +382,20 @@ window.getPortalSummaryData = function(d) {
     health: health,
     team: d.team,
     lngE6: d.lngE6,
-    type: 'portal'
+    type: 'portal',
   };
-}
+};
 
-window.getPortalAttackValues = function(d) {
-  var forceamps = getPortalModsByType(d, 'FORCE_AMP');
-  var turrets = getPortalModsByType(d, 'TURRET');
+/**
+ * Calculates various attack values of a portal, including hit bonus, force amplifier, and attack frequency.
+ *
+ * @function getPortalAttackValues
+ * @param {Object} d - The portal detail object containing mod information.
+ * @returns {Object} An object containing attack values such as hit bonus, force amplifier, and attack frequency.
+ */
+window.getPortalAttackValues = function (d) {
+  var forceamps = window.getPortalModsByType(d, 'FORCE_AMP');
+  var turrets = window.getPortalModsByType(d, 'TURRET');
 
   // at the time of writing, only rare force amps and turrets have been seen in the wild, so there's a little guesswork
   // at how the stats work and combine
@@ -359,13 +413,13 @@ window.getPortalAttackValues = function(d) {
     attack_frequency: 0,
   };
 
-  forceamps.forEach(function(mod, i) {
+  forceamps.forEach(function (mod, i) {
     // force amp stat FORCE_AMPLIFIER is 2000 for rare, and gives 2x boost to the range
     var baseMultiplier = mod.stats.FORCE_AMPLIFIER / 1000;
     attackValues.force_amplifier += baseMultiplier * scale[i];
   });
 
-  turrets.forEach(function(mod, i) {
+  turrets.forEach(function (mod, i) {
     // turret stat ATTACK_FREQUENCY is 2000 for rare, and gives 2x boost to the range
     var baseMultiplier = mod.stats.ATTACK_FREQUENCY / 1000;
     attackValues.attack_frequency += baseMultiplier * scale[i];
@@ -374,6 +428,4 @@ window.getPortalAttackValues = function(d) {
   });
 
   return attackValues;
-}
-
-
+};

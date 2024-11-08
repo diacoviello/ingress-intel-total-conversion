@@ -1,26 +1,48 @@
 // @author         jonatkins
 // @name           Highlight portals with ornaments
 // @category       Highlighter
-// @version        0.0.1
-// @description    Use the portal fill color to denote portals with additional 'ornament' markers. e.g. Anomaly portals
+// @version        0.2.4
+// @description    Use the portal fill color to denote portals with additional 'ornament' markers.
+//                 e.g. Anomaly portals
 
+/* exported setup, changelog --eslint */
+
+var changelog = [
+  {
+    version: '0.2.4',
+    changes: ['Refactoring: fix eslint'],
+  },
+  {
+    version: '0.2.3',
+    changes: ['Version upgrade due to a change in the wrapper: plugin icons are now vectorized'],
+  },
+  {
+    version: '0.2.2',
+    changes: ['Version upgrade due to a change in the wrapper: added plugin icon'],
+  },
+];
 
 // use own namespace for plugin
-window.plugin.portalHighlightOrnaments = function() {};
+var highlightOrnaments = {};
+window.plugin.highlightOrnaments = highlightOrnaments;
 
-window.plugin.portalHighlightOrnaments.highlight = function(data) {
+highlightOrnaments.styles = {
+  common: {
+    fillColor: 'red',
+    fillOpacity: 0.75,
+  },
+};
+
+function ornamentshighlight(data) {
   var d = data.portal.options.data;
-  if(d.ornaments && d.ornaments.length > 0) {
-    var fill_opacity = 0.75;
-    var color = 'red';
-
+  if (d.ornaments && d.ornaments.length > 0) {
     // TODO? match specific cases of ornament name and/or portals with multiple ornaments, and highlight in different colours?
 
-    var params = {fillColor: color, fillOpacity: fill_opacity};
+    var params = highlightOrnaments.styles.common;
     data.portal.setStyle(params);
   }
 }
 
-var setup =  function() {
-  window.addPortalHighlighter('Ornaments (anomaly portals)', window.plugin.portalHighlightOrnaments.highlight);
+function setup() {
+  window.addPortalHighlighter('Ornaments (anomaly portals)', ornamentshighlight);
 }

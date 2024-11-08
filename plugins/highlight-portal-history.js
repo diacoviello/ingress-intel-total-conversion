@@ -1,34 +1,48 @@
 // @author         Johtaja
 // @name           Highlight portals based on history
 // @category       Highlighter
-// @version        0.2.0
+// @version        0.3.3
 // @description    Use the portal fill color to denote the portal has been visited, captured, scout controlled
 
+/* exported setup, changelog --eslint */
+/* global L -- eslint */
+
+var changelog = [
+  {
+    version: '0.3.3',
+    changes: ['Refactoring: fix eslint'],
+  },
+  {
+    version: '0.3.2',
+    changes: ['Version upgrade due to a change in the wrapper: plugin icons are now vectorized'],
+  },
+  {
+    version: '0.3.1',
+    changes: ['Version upgrade due to a change in the wrapper: added plugin icon'],
+  },
+];
 
 // use own namespace for plugin
 var portalsHistory = {};
 window.plugin.portalHighlighterPortalsHistory = portalsHistory;
 
+// exposed objects
 portalsHistory.styles = {
   common: {
-    fillOpacity: 1
+    fillOpacity: 1,
   },
   marked: {
-    fillColor: 'red'
+    fillColor: 'red',
   },
   semiMarked: {
-    fillColor: 'yellow'
+    fillColor: 'yellow',
   },
   commonOther: {
     // no action by default
-  }
+  },
 };
 
-portalsHistory.setStyle = function (data, name) {
-  data.portal.setStyle(portalsHistory.styles[name]);
-};
-
-portalsHistory.visited = function (data) {
+function highlightPortalsHistoryVisited(data) {
   var history = data.portal.options.data.history;
   if (!history) {
     return;
@@ -41,9 +55,9 @@ portalsHistory.visited = function (data) {
   } else if (!$.isEmptyObject(s.otherVC)) {
     data.portal.setStyle(s.otherVC);
   }
-};
+}
 
-portalsHistory.notVisited = function (data) {
+function highlightPortalsHistoryNotVisited(data) {
   var history = data.portal.options.data.history;
   if (!history) {
     return;
@@ -56,9 +70,9 @@ portalsHistory.notVisited = function (data) {
   } else if (!$.isEmptyObject(s.otherNotVC)) {
     data.portal.setStyle(s.otherNotVC);
   }
-};
+}
 
-portalsHistory.scoutControlled = function (data) {
+function highlightPortalsHistoryScoutControlled(data) {
   var history = data.portal.options.data.history;
   if (!history) {
     return;
@@ -69,9 +83,9 @@ portalsHistory.scoutControlled = function (data) {
   } else if (!$.isEmptyObject(s.otherScout)) {
     data.portal.setStyle(s.otherScout);
   }
-};
+}
 
-portalsHistory.notScoutControlled = function (data) {
+function highlightPortalsHistoryNotScoutControlled(data) {
   var history = data.portal.options.data.history;
   if (!history) {
     return;
@@ -82,10 +96,10 @@ portalsHistory.notScoutControlled = function (data) {
   } else if (!$.isEmptyObject(s.otherNotScout)) {
     data.portal.setStyle(s.otherNotScout);
   }
-};
+}
 
 // Creating styles based on a given template
-function inherit (parentName, childNames) {
+function inherit(parentName, childNames) {
   var styles = portalsHistory.styles;
   childNames.forEach(function (name) {
     // Extension of _styles_ with a new _name_ object, created based on _parentName_ object.
@@ -93,14 +107,14 @@ function inherit (parentName, childNames) {
   });
 }
 
-var setup = function () {
+function setup() {
   inherit('common', ['marked', 'semiMarked']);
   inherit('semiMarked', ['visited', 'captureTarget']);
   inherit('marked', ['captured', 'visitTarget', 'scoutControlled', 'scoutControllTarget']);
   inherit('commonOther', ['otherVC', 'otherNotVC', 'otherScout', 'otherNotScout']);
 
-  window.addPortalHighlighter('History: visited/captured', portalsHistory.visited);
-  window.addPortalHighlighter('History: not visited/captured', portalsHistory.notVisited);
-  window.addPortalHighlighter('History: scout controlled', portalsHistory.scoutControlled);
-  window.addPortalHighlighter('History: not scout controlled', portalsHistory.notScoutControlled);
-};
+  window.addPortalHighlighter('History: visited/captured', highlightPortalsHistoryVisited);
+  window.addPortalHighlighter('History: not visited/captured', highlightPortalsHistoryNotVisited);
+  window.addPortalHighlighter('History: scout controlled', highlightPortalsHistoryScoutControlled);
+  window.addPortalHighlighter('History: not scout controlled', highlightPortalsHistoryNotScoutControlled);
+}

@@ -1,29 +1,56 @@
 // @author         jonatkins
 // @name           Highlight high level portals
 // @category       Highlighter
-// @version        0.1.0
+// @version        0.2.3
 // @description    Use the portal fill color to denote high level portals: Purple L8, Red L7, Orange L6
 
+/* exported setup, changelog --eslint */
+/* global L -- eslint */
+
+var changelog = [
+  {
+    version: '0.2.3',
+    changes: ['Refactoring: fix eslint'],
+  },
+  {
+    version: '0.2.2',
+    changes: ['Version upgrade due to a change in the wrapper: plugin icons are now vectorized'],
+  },
+  {
+    version: '0.2.1',
+    changes: ['Version upgrade due to a change in the wrapper: added plugin icon'],
+  },
+];
 
 // use own namespace for plugin
-window.plugin.portalHighlighterPortalsHighLevel = function() {};
+var highLevel = {};
+window.plugin.highlightHighLevel = highLevel;
 
-window.plugin.portalHighlighterPortalsHighLevel.colorLevel = function(data) {
+highLevel.styles = {
+  common: {
+    fillOpacity: 0.7,
+  },
+  level6: {
+    fillColor: 'orange',
+  },
+  level7: {
+    fillColor: 'red',
+  },
+  level8: {
+    fillColor: 'magenta',
+  },
+};
+
+function highlightHighLevel(data) {
   var portal_level = data.portal.options.data.level;
-  var opacity = 0.7;
-  var color = undefined;
+  if (portal_level === undefined) return; // continue on 0..8
+  var newStyle = L.extend({}, highLevel.styles.common, highLevel.styles['level' + portal_level]);
 
-  switch (portal_level) {
-    case 6: color='orange'; break;
-    case 7: color='red'; break;
-    case 8: color='magenta'; break;
-  }
-
-  if (color) {
-    data.portal.setStyle({fillColor: color, fillOpacity: opacity});
+  if (newStyle.fillColor) {
+    data.portal.setStyle(newStyle);
   }
 }
 
-var setup =  function() {
-  window.addPortalHighlighter('Higher Level Portals', window.plugin.portalHighlighterPortalsHighLevel.colorLevel);
+function setup() {
+  window.addPortalHighlighter('Higher Level Portals', highlightHighLevel);
 }

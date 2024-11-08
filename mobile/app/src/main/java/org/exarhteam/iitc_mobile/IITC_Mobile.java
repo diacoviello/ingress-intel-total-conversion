@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -34,6 +35,7 @@ import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.CookieManager;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -68,7 +70,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
@@ -86,7 +90,6 @@ public class IITC_Mobile extends AppCompatActivity
     private IITC_UserLocation mUserLocation;
     private IITC_NavigationHelper mNavigationHelper;
     private IITC_MapSettings mMapSettings;
-    private IITC_DeviceAccountLogin mLogin;
     private final Vector<ResponseHandler> mResponseHandlers = new Vector<ResponseHandler>();
     private boolean mDexRunning = false;
     private boolean mDexDesktopMode = true;
@@ -113,6 +116,13 @@ public class IITC_Mobile extends AppCompatActivity
     private IITC_DebugHistory debugHistory;
     private int debugHistoryPosition = -1;
     private String debugInputStore = "";
+    private Map<String, String> mAllowedHostnames = new HashMap<>();
+    private Set<String> mInternalHostnames = new HashSet<>();
+    private final Pattern mGoogleHostnamePattern = Pattern.compile("(^|\\.)google(\\.com|\\.co)?\\.\\w+$");
+
+    private String mIITCDefaultUA;
+    private String mIITCOriginalUA;
+    private final String mDesktopUA = "Mozilla/5.0 (X11; Linux x86_64; rv:17.0) Gecko/20130810 Firefox/17.0 Iceweasel/17.0.8";
 
     // Used for custom back stack handling
     private final Stack<Pane> mBackStack = new Stack<IITC_NavigationHelper.Pane>();
@@ -146,6 +156,11 @@ public class IITC_Mobile extends AppCompatActivity
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        // enable webview debug for debug builds
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                && 0 != (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE)) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
 
         // get status of Samsung DeX Mode at creation
         Configuration config = getResources().getConfiguration();
@@ -162,6 +177,18 @@ public class IITC_Mobile extends AppCompatActivity
         } catch(IllegalArgumentException e) {
             //Handle the IllegalArgumentException
         }
+
+        // Define webview user agent for known external hosts
+        mIITCOriginalUA = WebSettings.getDefaultUserAgent(this);
+        mIITCDefaultUA = sanitizeUserAgent(mIITCOriginalUA);
+        final String googleUA = (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) ? mDesktopUA : mIITCDefaultUA;
+
+        mAllowedHostnames.put("intel.ingress.com", mIITCDefaultUA);
+        mAllowedHostnames.put("google.com", googleUA);
+        mAllowedHostnames.put("youtube.com", googleUA);
+        mAllowedHostnames.put("facebook.com", mDesktopUA);
+        mAllowedHostnames.put("appleid.apple.com", mIITCDefaultUA);
+        mAllowedHostnames.put("signin.nianticlabs.com", mIITCDefaultUA);
 
         // enable progress bar above action bar
         // must be called BEFORE calling parent method
@@ -266,6 +293,14 @@ public class IITC_Mobile extends AppCompatActivity
         mDesktopFilter.addAction("UiModeManager.SEM_ACTION_EXIT_KNOX_DESKTOP_MODE");
         registerReceiver(mDesktopModeReceiver, mDesktopFilter);
 
+        // Check for app updates
+        if (BuildConfig.ENABLE_CHECK_APP_UPDATES) {
+            String buildType = BuildConfig.BUILD_TYPE;
+            int currentVersionCode = BuildConfig.VERSION_CODE;
+            UpdateChecker updateChecker = new UpdateChecker(this, buildType, currentVersionCode);
+            updateChecker.checkForUpdates();
+        }
+
         // receive downloadManagers downloadComplete intent
         // afterwards install iitc update
         registerReceiver(mBroadcastReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
@@ -310,8 +345,6 @@ public class IITC_Mobile extends AppCompatActivity
             invalidateOptionsMenu();
             // no reload needed
             return;
-        } else if (key.equals("pref_fake_user_agent")) {
-            mIitcWebView.setUserAgent();
         } else if (key.equals("pref_last_plugin_update")) {
             final Long forceUpdate = sharedPreferences.getLong("pref_last_plugin_update", 0);
             if (forceUpdate == 0) mFileManager.updatePlugins(true);
@@ -327,6 +360,8 @@ public class IITC_Mobile extends AppCompatActivity
                 || key.equals("pref_external_storage")) {
             // no reload needed
             return;
+        } else if (key.equals("pref_webview_zoom")) {
+            mIitcWebView.setWebViewZoom(Integer.parseInt(mSharedPrefs.getString("pref_webview_zoom", "-1")));
         }
 
         mReloadNeeded = true;
@@ -786,6 +821,8 @@ public class IITC_Mobile extends AppCompatActivity
                 return true;
             case R.id.action_settings: // start settings activity
                 final Intent intent = new Intent(this, PreferenceActivity.class);
+                intent.putExtra("iitc_userAgent", mIITCDefaultUA);
+                intent.putExtra("iitc_originalUserAgent", mIITCOriginalUA);
                 try {
                     intent.putExtra("iitc_version", mFileManager.getIITCVersion());
                 } catch (final IOException e) {
@@ -839,6 +876,7 @@ public class IITC_Mobile extends AppCompatActivity
         mIitcWebView.getWebViewClient().reset();
         mBackStack.clear();
         mCurrentPane = Pane.MAP;
+        mInternalHostnames = new HashSet<>();
     }
 
     // inject the iitc-script and load the intel url
@@ -884,24 +922,6 @@ public class IITC_Mobile extends AppCompatActivity
         }
     }
 
-    /**
-     * called by IITC_WebViewClient when the Google login form is opened.
-     */
-    public void onReceivedLoginRequest(final IITC_WebViewClient client, final WebView view, final String realm,
-            final String account, final String args) {
-        mLogin = new IITC_DeviceAccountLogin(this, view, client);
-        mLogin.startLogin(realm, account, args);
-    }
-
-    /**
-     * called after successful login
-     */
-    public void loginSucceeded() {
-        // garbage collection
-        mLogin = null;
-        setLoadingState(true);
-    }
-
     // remove dialog and add it back again
     // to ensure it is the last element of the list
     // focused dialogs should be closed first
@@ -915,7 +935,9 @@ public class IITC_Mobile extends AppCompatActivity
     public void dialogOpened(final String id, final boolean open) {
         if (open) {
             Log.d("Dialog " + id + " added");
-            mDialogStack.push(id);
+	    if (!mDialogStack.contains(id)) {
+                mDialogStack.push(id);
+	    }
         } else {
             Log.d("Dialog " + id + " closed");
             mDialogStack.remove(id);
@@ -1250,5 +1272,91 @@ public class IITC_Mobile extends AppCompatActivity
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    /**
+     * Add host name that should be opened in the internal webview.
+     * @param hostname host name.
+     */
+    public void addInternalHostname(String hostname) {
+        mInternalHostnames.add(hostname);
+    }
+
+    /**
+     * @param hostname host name.
+     * @return <code>true</code> if a host name should be opened in the internal webview.
+     */
+    public boolean isInternalHostname(String hostname) {
+        return mInternalHostnames.contains(hostname);
+    }
+
+    /**
+     * @param hostname host name
+     * @return <code>true</code> if host name is google.* or google.com?.* domain
+     */
+    public boolean isGoogleHostname(String hostname) {
+        if (hostname.startsWith("google.") || hostname.contains(".google.")) {
+            return mGoogleHostnamePattern.matcher(hostname).find();
+        }
+        return false;
+    }
+
+    /**
+     * @param hostname host name.
+     * @return <code>true</code> if a host name allowed to be load in IITC.
+     */
+    public boolean isAllowedHostname(String hostname) {
+        // shortcut for .google.* hostnames
+        if (isGoogleHostname(hostname)) {
+            return true;
+        }
+        for (String key : mAllowedHostnames.keySet()) {
+            if (hostname.equals(key)) return true;
+            if (hostname.endsWith("." + key)) return true;
+        }
+        return isInternalHostname(hostname);
+    }
+
+    /**
+     * @param hostname host name.
+     * @return <code>user-agent string</code> if a host name allowed to be load in IITC.
+     */
+    public String getUserAgentForHostname(String hostname) {
+        if (mSharedPrefs.getBoolean("pref_fake_user_agent", false))
+            return mDesktopUA;
+        // shortcut for .google.* hostnames
+        if (isGoogleHostname(hostname)) {
+            hostname = "google.com";
+        }
+        for (Map.Entry<String,String> e : mAllowedHostnames.entrySet()) {
+            final String key = e.getKey();
+            if (hostname.equals(key)) return e.getValue();
+            if (hostname.endsWith("." + key)) return e.getValue();
+        }
+        return null;
+    }
+
+    public String sanitizeUserAgent(String userAgent) {
+        // Hide webview postfix
+        // Remove the "; wv" postfix from the user agent to hide WebView usage and present as a regular browser.
+        userAgent = userAgent.replace("; wv", "");
+
+        // Regular expression to find the substring "Chrome/[N].0.0.0" where [N] is any number.
+        // For some reason, Google disallows authorization if the Chrome version ends in ".0.0.0"
+        String regex = "Chrome/(\\d+)\\.0\\.0\\.0";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(userAgent);
+        if (matcher.find()) {
+            // Extract the version number [N] from the found match.
+            String numberStr = matcher.group(1);
+            int number = Integer.parseInt(numberStr);
+
+            // Create the replacement string in the format "Chrome/[N].0.0.1".
+            String replacement = "Chrome/" + number + ".0.0.1";
+
+            // Replace the found match with the new version number in the user agent string.
+            userAgent = userAgent.replaceFirst(regex, replacement);
+        }
+        return userAgent;
     }
 }

@@ -1,35 +1,41 @@
 // @author         jonatkins
 // @name           Highlight inactive portals
 // @category       Highlighter
-// @version        0.1.0
-// @description    Use the portal fill color to denote if the portal is unclaimed with no recent activity. Shades of red from one week to one month, then tinted to purple for longer. May also highlight captured portals that are stuck and fail to decay every 24 hours.
+// @version        0.2.3
+// @description    Use the portal fill color to denote if the portal is unclaimed with no recent activity.
+//                 Shades of red from one week to one month, then tinted to purple for longer.
+//                 May also highlight captured portals that are stuck and fail to decay every 24 hours.
 
+/* exported setup, changelog --eslint */
 
-// use own namespace for plugin
-window.plugin.portalHighlighterInactive = function() {};
+var changelog = [
+  {
+    version: '0.2.3',
+    changes: ['Refactoring: fix eslint'],
+  },
+  {
+    version: '0.2.2',
+    changes: ['Version upgrade due to a change in the wrapper: plugin icons are now vectorized'],
+  },
+  {
+    version: '0.2.1',
+    changes: ['Version upgrade due to a change in the wrapper: added plugin icon'],
+  },
+];
 
-window.plugin.portalHighlighterInactive.highlight = function(data) {
-
+function highlightInactivePortals(data) {
   if (data.portal.options.timestamp > 0) {
-
-    var daysUnmodified = (new Date().getTime() - data.portal.options.timestamp) / (24*60*60*1000);
-
+    var daysUnmodified = (new Date().getTime() - data.portal.options.timestamp) / (24 * 60 * 60 * 1000);
     if (daysUnmodified >= 7) {
-
-      var fill_opacity = Math.min(1,((daysUnmodified-7)/24)*.85 + .15);
-
-      var blue = Math.max(0,Math.min(255,Math.round((daysUnmodified-31)/62*255)));
-
-      var colour = 'rgb(255,0,'+blue+')';
-
-      var params = {fillColor: colour, fillOpacity: fill_opacity};
-
+      var fill_opacity = Math.min(1, ((daysUnmodified - 7) / 24) * 0.85 + 0.15);
+      var blue = Math.max(0, Math.min(255, Math.round(((daysUnmodified - 31) / 62) * 255)));
+      var colour = 'rgb(255,0,' + blue + ')';
+      var params = { fillColor: colour, fillOpacity: fill_opacity };
       data.portal.setStyle(params);
     }
   }
-
 }
 
-var setup =  function() {
-  window.addPortalHighlighter('Inactive Portals', window.plugin.portalHighlighterInactive.highlight);
+function setup() {
+  window.addPortalHighlighter('Inactive Portals', highlightInactivePortals);
 }

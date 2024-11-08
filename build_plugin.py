@@ -52,7 +52,7 @@ def fill_meta(source, plugin_name, dist_path):
                 if not re.match(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$', value):
                     print(f'{plugin_name}: wrong version format: {value}')  # expected: major.minor.patch
                 elif settings.version_timestamp:  # append timestamp only for well-formed version
-                    line = line.replace(value, '{ver}.{.build_timestamp}'.format(settings, ver=value))
+                    line = line.replace(value, '{ver}.{timestamp}'.format(ver=value, timestamp=settings.build_timestamp()))
             elif key == 'name':
                 if value == 'IITC: Ingress intel map total conversion':
                     is_main = True
@@ -74,7 +74,15 @@ def fill_meta(source, plugin_name, dist_path):
         append_line('downloadURL', path + '.user.js')
 
     if keys.isdisjoint({'match', 'include'}):
-        append_line('match', settings.match)
+        if isinstance(settings.match, str):
+            settings.match = [settings.match]
+        for m in settings.match:
+            append_line('match', m)
+
+    if settings.url_icon_base:
+        append_line('icon', settings.url_icon_base.format(plugin_name))
+    if settings.url_icon_64_base:
+        append_line('icon64', settings.url_icon_64_base.format(plugin_name))
 
     append_line('grant', 'none')
     meta.append('// ==/UserScript==\n')
@@ -134,7 +142,10 @@ def expand_template(match, path=None):
     quote = "'%s'"
     kw, filename = match.groups()
     if not filename:
-        return quote % getattr(settings, kw)
+        value = getattr(settings, kw)
+        if callable(value):
+            value = value()
+        return quote % value
 
     fullname = path / filename
     if kw == 'include_raw':
