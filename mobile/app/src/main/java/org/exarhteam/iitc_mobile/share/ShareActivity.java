@@ -46,6 +46,14 @@ public class ShareActivity extends FragmentActivity implements ActionBar.TabList
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     }
 
+    public static Intent forUri(final Context context, final Uri uri, final String type) {
+        return new Intent(context, ShareActivity.class)
+                .putExtra(EXTRA_TYPE, TYPE_FILE)
+                .putExtra("uri", uri)
+                .putExtra("type", type)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    }
+
     public static Intent forPosition(final Context context, final double lat, final double lng, final int zoom,
                                      final String title, final boolean isPortal, String guid) {
         return new Intent(context, ShareActivity.class)
